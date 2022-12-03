@@ -1,0 +1,180 @@
+(def constant MOD_RPF_DIRECTION_TO_MESSAGE [
+	'RPF: N~NNE'
+	'RPF: NNE~NE'
+	'RPF: NE~ENE'
+	'RPF: ENE~E'
+	'RPF: E~ESE'
+	'RPF: ESE~SE'
+	'RPF: SE~SSE'
+	'RPF: SSE~S'
+	'RPF: S~SSW'
+	'RPF: SSW~SW'
+	'RPF: SW~WSW'
+	'RPF: WSW~W'
+	'RPF: W~WNW'
+	'RPF: WNW~NW'
+	'RPF: NW~NNW'
+	'RPF: NNW~N'
+])
+
+(def element MapShipMarker (_entity:gfx, _mapScale:number, _itemScale:number, _scaleRatio:number, _isLoading:bool = false) layout=true
+	(scope
+		(var isPlayerAvatar:bool = "_entity.hasComponent(CC.playerAvatar)")
+		(var isAlive:bool = "_entity.health ? _entity.health.isAlive : false" (event "_entity.health.evIsAliveChanged"))
+
+		(var target:gfx = "_entity.target" (event "_entity.evAdded") (event "_entity.evRemoved"))
+		(var targetFlags:number = "target ? target.flags : 0" (event "target.evChanged"))
+		(var isTargetLocked:bool = "(targetFlags & LOCKABLE_WEAPONS) > 0")
+
+		(var mapVisible:bool = "_entity.visibility ? _entity.visibility.mapVisible : false" (event "_entity.visibility.evChanged"))
+		(var worldVisible:bool = "_entity.visibility ? _entity.visibility.visible : false" (event "_entity.visibility.evChanged"))
+
+		(var markerYaw:number = "radToGrad(_entity.mapPosition.yaw)" (event "evEnterFrame"))
+		(var markerScale:number = "_itemScale / _mapScale")
+
+		(var minimapEntity:gfx = "$datahub.getSingleEntity(CC.minimap)")
+		(var minimapComponent:gfx = "minimapEntity.minimap")
+		(var angleToRotate:number = "minimapComponent && !_isLoading ? minimapComponent.rotationAngleDeg : 0" (event "minimapComponent.evRotationAngleDegChanged"))
+
+		(var rangesAlphaComponent:gfx = "$datahub.getPrimaryEntity(CC.minimapOption, SC.Battle.MINIMAP_OPTION.rangesAlpha).minimapOption")
+		(var rangesAlpha:number = "rangesAlphaComponent.value * 0.01" (event "rangesAlphaComponent.evValueChanged"))
+		
+		(var shipNamesDisplayEnabledComponent:gfx = "$datahub.getPrimaryEntity(CC.minimapOption, SC.Battle.MINIMAP_OPTION.shipNamesDisplayEnabled).minimapOption")
+		(var shipNamesDisplayEnabled:bool = "shipNamesDisplayEnabledComponent.value > 0" (event "shipNamesDisplayEnabledComponent.evValueChanged"))
+
+		(var cameraEntity:gfx = "$datahub.getSingleEntity(CC.camera)")
+		(var altVision:bool = "cameraEntity.camera ? cameraEntity.camera.altVision : false" (event "cameraEntity.camera.evAltVisionChanged"))
+		(macro SCOPE_HIGHLIGHT_MARKER_ON_MAP_MOUSE_OVER "_entity")
+
+		(var relationComponent:gfx = "_entity ? _entity.relation : null")
+		(var isAlly:bool = "relationComponent && relationComponent.value == SC.Battle.PLAYER_RELATION.ALLY" (event "relationComponent.evChanged"))
+		(var isSelf:bool = "relationComponent && relationComponent.value == SC.Battle.PLAYER_RELATION.SELF" (event "relationComponent.evChanged"))
+
+		#mod_start
+		(var rpfSectorWidth:number = "360 / 16")
+		(var rpfSectorWidthRad:number = "gradToRad(rpfSectorWidth)")
+		(var rpfHalfSectorWidth:number = "rpfSectorWidth / 2")
+		(var rpfHalfSectorWidthRad:number = "gradToRad(rpfHalfSectorWidth)")
+		(var messageCollection:gfx = "$datahub.getCollection(CC.battleChatAndLogMessage)")
+		(var messagesCount:number = "messageCollection.items.length" (event "messageCollection.evAdded"))
+		(var latestMessageEntity:gfx = "messageCollection.items[messagesCount - 1].battleChatAndLogMessage")
+		(var message:str = "latestMessageEntity.htmlText")
+		(var playerId:number = "latestMessageEntity.playerId")
+		(var isSamePlayer:bool = "playerId == _entity.avatar.id")
+		#rpfDir starts with 1 because the variable is initialized as 0. We cant tell if its just inited or received value when we use 0 as index.
+		#self-assignment will fail in unbound (var rpfDir "cond ? val1 : rpfDir") so I have to use another variable to keep it
+		#rewrite this if possible
+		(var _rpfDir:number = "-1" watch=false)
+		(bind _rpfDir "rpfDir" init=false watch=false (event "messageCollection.evAdded"))
+		(var rpfDir:number = "isSamePlayer ?
+								MOD_RPF_DIRECTION_TO_MESSAGE[0] in message ? 1 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[1] in message ? 2 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[2] in message ? 3 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[3] in message ? 4 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[4] in message ? 5 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[5] in message ? 6 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[6] in message ? 7 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[7] in message ? 8 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[8] in message ? 9 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[9] in message ? 10 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[10] in message ? 11 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[11] in message ? 12 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[12] in message ? 13 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[13] in message ? 14 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[14] in message ? 15 :
+								MOD_RPF_DIRECTION_TO_MESSAGE[15] in message ? 16 :
+								_rpfDir
+							  :_rpfDir")
+		(var rpfComponent:gfx = "$datahub.getSingleEntity(CC.nearestEnemyIndication).nearestEnemyIndication")
+		(var showNearestEnemy:bool = "isSelf ? rpfComponent ? rpfComponent.showNearestEnemy : false :
+									  rpfDir > 0 ? true : false" (event "rpfComponent.evShowNearestEnemyChanged"))
+		(var yawToNearestEnemy:number = "isSelf ? rpfComponent ? rpfComponent.yawToNearestEnemy : 0 :
+										 (rpfDir-1) * rpfSectorWidthRad + rpfHalfSectorWidthRad" (event "rpfComponent.evYawToNearestEnemyChanged"))
+		(var degToNearestEnemy:number = "radToGrad(yawToNearestEnemy)")
+		#chat
+		(var rpfChangeMessageIndex:number = "formatFloatingPoint(((yawToNearestEnemy - rpfHalfSectorWidthRad) / rpfSectorWidthRad), 0)")
+		(var newMessage:str = "MOD_RPF_DIRECTION_TO_MESSAGE[rpfChangeMessageIndex]")
+		(event evOnSendButtonPressed)
+		(var commandComponent:gfx = "$datahub.getSingleEntity(CC.quickCommandsPanel).quickCommandsPanel")
+		(var commandPanelActive:bool = "commandComponent.active" (event "commandComponent.evActiveChanged"))
+		(dispatch evOnSendButtonPressed (bind trigger "commandPanelActive") (bind enabled "commandPanelActive"))
+		(bindcall externalCall "isSelf && rpfComponent.showNearestEnemy ? 'inputMapping.onAction' : ''" "['battleChat.outgoingMessage', {'message':newMessage}]" init=false watch=false (event "evOnSendButtonPressed"))
+		#mod_end
+	)
+
+	(block
+		(style
+			(position = "absolute")
+		)
+		(controller $Instance (renderer = 'MapMarkerDirectionalLine')
+			(bind enabled "(isPlayerAvatar || isTargetLocked) && isAlive && mapVisible && !_isLoading")
+			(exprs
+				(style
+					(bind rotation "markerYaw")
+					(bind alpha "rangesAlpha")
+				)
+			)
+		)
+	)
+
+	(block
+		(style
+			(position = "absolute")
+		)
+		(controller $Instance (renderer = 'MapMarkerRanges')
+			(bind enabled "isPlayerAvatar && isAlive && !_isLoading")
+			(args entity="_entity" mapScale="_mapScale")
+		)
+	)
+
+	#mod_start
+	(block
+		(bind alpha "0.13")
+		(bind visible "showNearestEnemy && isAlive && (isAlly || isSelf)")
+		(style
+			(bind rotation "degToNearestEnemy - rpfHalfSectorWidth")
+		)
+		(controller $Sector
+			(bind color "0xFFFFFF")
+			(bind arc "rpfSectorWidth")
+			(bind offset "-90")
+			(bind radius "300")
+		)
+	)
+	#debug
+	#(block
+	#	(tf
+	#		(bind text "commandPanelActive")
+	#	)
+	#)
+
+	#mod_end
+
+	(block
+		(style
+			(position = "absolute")
+		)
+
+		(macro EFFECT_HIGHLIGHT_MARKER_ON_MOUSE_OVER)
+		(element MapMarkerShipIcon
+			_entityId="_entity.id"
+			(style (bind rotation "markerYaw"))
+			(macro BIND_FAIR_SCALE "markerScale")
+		)
+	)
+
+	(block
+		(style
+			(position = "absolute")
+			(pivotY = -8)
+			(bind rotation "-(angleToRotate)")
+		)
+		(block
+			(controller $Instance (renderer = 'MapMarkerShipName')
+				(bind enabled "!(isPlayerAvatar) && isAlive && (shipNamesDisplayEnabled || altVision)")
+				(args _entityId="_entity.id")
+			)
+		)
+		(macro BIND_FAIR_SCALE "markerScale")
+	)
+)
