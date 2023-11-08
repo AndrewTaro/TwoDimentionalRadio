@@ -5,7 +5,6 @@
 		(var itemCount:number = "minimapRanges ? minimapRanges.items.length : 0"  watch=false (event "minimapRanges.evAdded"))
 
 		#modded
-		(var entity:gfx = "$datahub.getEntity(_entityId)")
 		(var rpfComponent:gfx = "$datahub.getSingleEntity(CC.nearestEnemyIndication).nearestEnemyIndication")
 		(var showNearestEnemy:bool = "rpfComponent ? rpfComponent.showNearestEnemy : false" (event "rpfComponent.evShowNearestEnemyChanged"))
 		(var yawToNearestEnemy:number = "rpfComponent ? rpfComponent.yawToNearestEnemy : 0" (event "rpfComponent.evYawToNearestEnemyChanged"))
