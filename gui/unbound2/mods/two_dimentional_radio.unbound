@@ -1,11 +1,9 @@
 ############################
 #
-#	IF YOU ARE READING THIS,
-#	DO NOT, UNDER ANY CIRCUMSTANCES,
-#	- MODIFY THIS MODIFICATION.
-#	- COPY THIS MODIFICATION.
-#	- USE OR IMPORT A SUBSET OF THIS MODIFICATION INTO ANOTHER MODIFICATION.
-#	- EDIT OR CREATE ANOTHER MODIFICATION TO ACCOMMODATE THE FUNCTIONALITY THIS MODIFICATION PROVIDES.
+#	IF YOU ARE READING THIS, UNDER ANY CIRCUMSTANCES,
+#	- DO NOT MODIFY THIS MODIFICATION FURTHER.
+#	- DO NOT USE OR IMPORT A SUBSET OF THIS MODIFICATION INTO ANOTHER MODIFICATION.
+#	- DO NOT EDIT OR CREATE ANOTHER MODIFICATION TO ACCOMMODATE THE FUNCTIONALITIES THIS MODIFICATION PROVIDES.
 #
 #	THIS MODIFICATION MUST BE DISTRIBUTED AND USED AS IT IS.
 #
@@ -16,24 +14,27 @@
 #	YOU HAVE BEEN WARNED.
 #
 
-
+# Index 16: None means no RPF is visible.
+# It could happen when the submarine is at maximum depth and he is the only remaining enemy
+(def constant RPF_INVALID_DIRECTION "-1")
 (def constant RPF_DIRECTION_MESSAGES [
-	'RPF: N~NNE'
-	'RPF: NNE~NE'
-	'RPF: NE~ENE'
-	'RPF: ENE~E'
-	'RPF: E~ESE'
-	'RPF: ESE~SE'
-	'RPF: SE~SSE'
-	'RPF: SSE~S'
-	'RPF: S~SSW'
-	'RPF: SSW~SW'
-	'RPF: SW~WSW'
-	'RPF: WSW~W'
-	'RPF: W~WNW'
-	'RPF: WNW~NW'
-	'RPF: NW~NNW'
-	'RPF: NNW~N'
+	'RPF: N~NNE',
+	'RPF: NNE~NE',
+	'RPF: NE~ENE',
+	'RPF: ENE~E',
+	'RPF: E~ESE',
+	'RPF: ESE~SE',
+	'RPF: SE~SSE',
+	'RPF: SSE~S',
+	'RPF: S~SSW',
+	'RPF: SSW~SW',
+	'RPF: SW~WSW',
+	'RPF: WSW~W',
+	'RPF: W~WNW',
+	'RPF: WNW~NW',
+	'RPF: NW~NNW',
+	'RPF: NNW~N',
+	'RPF: None',
 ])
 
 (def constant RPF_SECTOR_WIDTH_DEG "360 / 16")
@@ -43,7 +44,7 @@
 (def constant RPF_SECTOR_HALF_WIDTH_RAD "gradToRad(RPF_SECTOR_HALF_WIDTH_DEG)")
 
 (def constant RPF_MESSAGE_COOLDOWN_DURATION "45")
-(def constant RPF_MESSAGE_COOLDOWN_MAX_COUNT "3")
+(def constant RPF_MESSAGE_COOLDOWN_MAX_COUNT "1")
 
 
 (def element MapShipMarker (_markerEntity:gfx, _mapScale:number, _itemScale:number, _scaleRatio:number) layout=true
@@ -100,7 +101,7 @@
 		# rewrite this if possible
 
 		# RPF Direction
-		(var _rpfDirectionIndex:number = "-1" watch=false)
+		(var _rpfDirectionIndex:number = "RPF_INVALID_DIRECTION" watch=false)
 		(bind _rpfDirectionIndex "rpfDirectionIndex" init=false watch=false (event "messageCollection.evAdded"))
 		(var rpfDirectionIndex:number = "
 								isMessageSender ?
@@ -120,6 +121,7 @@
 									RPF_DIRECTION_MESSAGES[13] in message ? 14 :
 									RPF_DIRECTION_MESSAGES[14] in message ? 15 :
 									RPF_DIRECTION_MESSAGES[15] in message ? 16 :
+									RPF_DIRECTION_MESSAGES[16] in message ? RPF_INVALID_DIRECTION :
 									_rpfDirectionIndex
 								: _rpfDirectionIndex"
 		)
@@ -233,15 +235,20 @@
 		(var isAllyChat:bool = "isTeamChat || isDivisionChat")
 
 		# RPF Message
-		(var rpfMessageIndex:number = "round((yawToNearestEnemy - RPF_SECTOR_HALF_WIDTH_RAD) / RPF_SECTOR_WIDTH_RAD)")
-		(var rpfMessage:str = "RPF_DIRECTION_MESSAGES[rpfMessageIndex]")
+		(var rpfMessageIndex:number = "isRPFVisible ? round((yawToNearestEnemy - RPF_SECTOR_HALF_WIDTH_RAD) / RPF_SECTOR_WIDTH_RAD)
+													: 16"
+		)
+		(var rpfMessage:str = "rpfMessageIndex < RPF_DIRECTION_MESSAGES.length ? RPF_DIRECTION_MESSAGES[rpfMessageIndex] : ''")
+		(var prevRpfMessage:str = '' watch=false)
+		(bind prevRpfMessage "rpfMessage" watch=false init=false (event "evSendMessage"))
+		(var isRPFChanged:bool = "rpfMessage != prevRpfMessage")
 
 		# Cooldown
 		(var battleInfoComponent:gfx = "$datahub.getSingleComponent(CC.battleInfo)")
 		(var battleType:str = "battleInfoComponent.battleType")
 		(var isClanBattle:bool = "battleType == SC.Common.BATTLE_TYPES.CLAN_BATTLE")
 		(var isTrainingBattle:bool = "battleType == SC.Common.BATTLE_TYPES.TRAINING_BATTLE")
-		(var isAntiSpamEnabled:bool = "!(isClanBattle || isTrainingBattle || isDivisionChat)")
+		(var isAntiSpamEnabled:bool = "!(isClanBattle || isTrainingBattle || isDivisionChat || isRPFChanged)")
 
 		(var coolDownCount:number = "0" watch=false)
 		(bind coolDownCount "coolDownCount + 1" watch=false init=false (event "evStartCoolDown")) # evStartCoolDown will trigger only when (isTeamChat == true)
@@ -253,7 +260,7 @@
 		(var isCommandPanelActive:bool = "commandComponent.active" (event "commandComponent.evActiveChanged"))
 
 		# Availability
-		(var canSendChat:bool = "isCommandPanelActive && isRPFVisible && isAllyChat && !isOnCoolDown")		
+		(var canSendChat:bool = "isCommandPanelActive && isAllyChat && !isOnCoolDown")		
 	)
 
 	(dispatch evSendMessage watch=false init=false (bind trigger "isCommandPanelActive") (bind enabled "canSendChat"))
