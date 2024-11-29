@@ -115,7 +115,7 @@
 
 		# Mod
 		(macro RPF_GET_USERPREF)
-		(var prefs:dict = "isSelf ? RPF_PREFS.SELF : RM_PREFS.ALLY")
+		(var prefs:dict = "isSelf ? RPF_PREFS.SELF : RPF_PREFS.ALLY")
 
 		(macro RPF_GET_PREF_NUMBER _varName="'alphaScale'"	_pref="prefs.ALPHA")
 		(macro RPF_GET_PREF_NUMBER _varName="'redScale'"	_pref="prefs.RED")
