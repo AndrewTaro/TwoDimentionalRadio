@@ -44,7 +44,7 @@
 (def constant RPF_SECTOR_HALF_WIDTH_RAD "gradToRad(RPF_SECTOR_HALF_WIDTH_DEG)")
 
 (def constant RPF_MESSAGE_COOLDOWN_DURATION "45")
-(def constant RPF_MESSAGE_COOLDOWN_MAX_COUNT "1")
+(def constant RPF_MESSAGE_COOLDOWN_MAX_COUNT "3")
 
 
 (def element MapShipMarker (_markerEntity:gfx, _mapScale:number, _itemScale:number, _scaleRatio:number) layout=true
@@ -248,7 +248,7 @@
 		(var battleType:str = "battleInfoComponent.battleType")
 		(var isClanBattle:bool = "battleType == SC.Common.BATTLE_TYPES.CLAN_BATTLE")
 		(var isTrainingBattle:bool = "battleType == SC.Common.BATTLE_TYPES.TRAINING_BATTLE")
-		(var isAntiSpamEnabled:bool = "!(isClanBattle || isTrainingBattle || isDivisionChat || isRPFChanged)")
+		(var isAntiSpamEnabled:bool = "!(isClanBattle || isTrainingBattle || isDivisionChat)")
 
 		(var coolDownCount:number = "0" watch=false)
 		(bind coolDownCount "coolDownCount + 1" watch=false init=false (event "evStartCoolDown")) # evStartCoolDown will trigger only when (isTeamChat == true)
@@ -260,7 +260,7 @@
 		(var isCommandPanelActive:bool = "commandComponent.active" (event "commandComponent.evActiveChanged"))
 
 		# Availability
-		(var canSendChat:bool = "isCommandPanelActive && isAllyChat && !isOnCoolDown")		
+		(var canSendChat:bool = "isCommandPanelActive && isAllyChat && !isOnCoolDown && isRPFChanged")
 	)
 
 	(dispatch evSendMessage watch=false init=false (bind trigger "isCommandPanelActive") (bind enabled "canSendChat"))
