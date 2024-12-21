@@ -48,33 +48,6 @@
 
 
 (def constant TT_2DRADIO_INSTALLED "true")
-(def constant RPF_PREFS {
-	SELF: {
-		RED			: {KEY: '2dRadioSelfSectorColorRed',	DEFAULT: 1.0,	MODIFIER: 0.1,	OFFSET: 0},
-		GREEN		: {KEY: '2dRadioSelfSectorColorGreen',	DEFAULT: 1.0,	MODIFIER: 0.1,	OFFSET: 0},
-		BLUE		: {KEY: '2dRadioSelfSectorColorBlue',	DEFAULT: 1.0,	MODIFIER: 0.1,	OFFSET: 0},
-		ALPHA		: {KEY: '2dRadioSelfSectorOpacity',		DEFAULT: 0.1,	MODIFIER: 0.1,	OFFSET: 0},
-	},
-	ALLY: {
-		RED			: {KEY: '2dRadioAllySectorColorRed',	DEFAULT: 1.0,	MODIFIER: 0.1,	OFFSET: 0},
-		GREEN		: {KEY: '2dRadioAllySectorColorGreen',	DEFAULT: 1.0,	MODIFIER: 0.1,	OFFSET: 0},
-		BLUE		: {KEY: '2dRadioAllySectorColorBlue',	DEFAULT: 1.0,	MODIFIER: 0.1,	OFFSET: 0},
-		ALPHA		: {KEY: '2dRadioAllySectorOpacity',		DEFAULT: 0.1,	MODIFIER: 0.1,	OFFSET: 0},
-	}
-})
-
-(def macro RPF_GET_USERPREF()
-	(var userPrefsComponent:gfx = "$datahub.getSingleComponent(CC.userPrefs)")
-	(var userPrefsNum:gfx = "userPrefsComponent.userPrefs.chatBoxWidth" watch=false (event "userPrefsComponent.evUserPrefsChanged"))
-)
-
-(def macro RPF_GET_PREF_NUMBER (_varName:expression, _pref:expression)
-	(var name="_varName" type=number value="userPrefsNum && isNumber(userPrefsNum[_pref.KEY]) ? _pref.OFFSET + (round(userPrefsNum[_pref.KEY]) * _pref.MODIFIER) : _pref.DEFAULT")
-)
-
-(def macro RPF_GET_PREF_BOOL (_varName:expression, _pref:expression)
-	(var name="_varName" type=bool value="userPrefsNum && isNumber(userPrefsNum[_pref.KEY]) ? round(userPrefsNum[_pref.KEY]) : _pref.DEFAULT")
-)
 
 
 (def element MapShipMarker (_markerEntity:gfx, _mapScale:number, _itemScale:number, _scaleRatio:number) layout=true
@@ -114,13 +87,13 @@
 		(var isSelf:bool = "relationComponent && relationComponent.value == SC.Battle.PLAYER_RELATION.SELF" (event "relationComponent.evChanged"))
 
 		# Mod
-		(macro RPF_GET_USERPREF)
+		(macro TT_GET_USERPREF)
 		(var prefs:dict = "isSelf ? RPF_PREFS.SELF : RPF_PREFS.ALLY")
 
-		(macro RPF_GET_PREF_NUMBER _varName="'alphaScale'"	_pref="prefs.ALPHA")
-		(macro RPF_GET_PREF_NUMBER _varName="'redScale'"	_pref="prefs.RED")
-		(macro RPF_GET_PREF_NUMBER _varName="'greenScale'"	_pref="prefs.GREEN")
-		(macro RPF_GET_PREF_NUMBER _varName="'blueScale'"	_pref="prefs.BLUE")
+		(macro TT_GET_PREF_NUMBER _varName="'alphaScale'"	_pref="prefs.ALPHA")
+		(macro TT_GET_PREF_NUMBER _varName="'redScale'"	_pref="prefs.RED")
+		(macro TT_GET_PREF_NUMBER _varName="'greenScale'"	_pref="prefs.GREEN")
+		(macro TT_GET_PREF_NUMBER _varName="'blueScale'"	_pref="prefs.BLUE")
 
 		# Chat
 		(var messageCollection:gfx = "$datahub.getCollection(CC.battleChatAndLogMessage)")
