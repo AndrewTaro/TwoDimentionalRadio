@@ -907,7 +907,7 @@ class File:
 
     def _unpack(self, view):
         """Распаковка файла из клиента"""
-        res = os.path.isfile('../../../res/' + self.file_name)
+        res = os.path.isfile(mod_path + '../../../res/' + self.file_name)
         path = '../../../res/' if res else 'unpack/'
         if not wowsunpack and not res:
             global pkg
